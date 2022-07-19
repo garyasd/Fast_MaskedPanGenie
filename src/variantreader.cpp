@@ -78,7 +78,7 @@ void parse_info_fields(vector<string>& result, string line) {
 	}
 }
 
-VariantReader::VariantReader(string filename, string reference_filename, size_t kmer_size, bool add_reference, string sample)
+VariantReader::VariantReader(string filename, string reference_filename, size_t kmer_size, bool add_reference, string sample, string mask)
 	:fasta_reader(reference_filename),
 	 kmer_size(kmer_size),
 	 nr_variants(0),
@@ -142,7 +142,8 @@ VariantReader::VariantReader(string filename, string reference_filename, size_t 
 			continue;
 		}
 		// if distance to next variant is larger than kmer_size, start a new cluster
-		if ( (previous_chrom != current_chrom) || (current_start_pos - previous_end_pos) >= (kmer_size-1) ) {
+		size_t size = mask.size()==0 ? kmer_size : mask.size();
+		if ( (previous_chrom != current_chrom) || (current_start_pos - previous_end_pos) >= (size-1) ) {
 			// merge all variants currently in cluster and store them
 			add_variant_cluster(previous_chrom, &variant_cluster);
 			variant_cluster.clear();
@@ -168,7 +169,8 @@ VariantReader::VariantReader(string filename, string reference_filename, size_t 
 		parse_line(alleles, tokens[4], ',');
 
 		// TODO: handle cases where variant is less than kmersize from start or end of the chromosome
-		if ( (current_start_pos < (kmer_size*2) ) || ( (current_end_pos + (kmer_size*2)) > this->fasta_reader.get_size_of(current_chrom)) ) {
+		size = mask.size()==0 ? kmer_size : mask.size();
+		if ( (current_start_pos < (size*2) ) || ( (current_end_pos + (size*2)) > this->fasta_reader.get_size_of(current_chrom)) ) {
 			cerr << "VariantReader: skip variant at " << current_chrom << ":" << current_start_pos << " since variant is less than 2 * kmer size from start or end of chromosome. " << endl;
 			continue;
 		}
@@ -214,9 +216,12 @@ VariantReader::VariantReader(string filename, string reference_filename, size_t 
 
 		// determine left and right flanks
 		DnaSequence left_flank;
-		this->fasta_reader.get_subsequence(current_chrom, current_start_pos - kmer_size + 1, current_start_pos, left_flank);
 		DnaSequence right_flank;
-		this->fasta_reader.get_subsequence(current_chrom, current_end_pos, current_end_pos + kmer_size - 1, right_flank);
+		
+		size = mask.size()==0 ? kmer_size : mask.size();
+		this->fasta_reader.get_subsequence(current_chrom, current_start_pos - size + 1, current_start_pos, left_flank);
+		this->fasta_reader.get_subsequence(current_chrom, current_end_pos, current_end_pos + size - 1, right_flank);
+		
 		// add Variant to variant_cluster
 		Variant variant (left_flank, right_flank, current_chrom, current_start_pos, current_end_pos, alleles, paths);
 		variant_cluster.push_back(variant);

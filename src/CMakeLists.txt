@@ -21,7 +21,8 @@ add_library(PanGenieLib SHARED
 	uniquekmercomputer.cpp
 	uniquekmers.cpp
 	variant.cpp
-	variantreader.cpp)
+	variantreader.cpp
+	merstring.cpp)
 
 add_executable(PanGenie pggtyper.cpp)
 #add_executable(PanGenie-kmers pggtyper-kmers.cpp)

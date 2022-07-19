@@ -33,7 +33,7 @@ std::vector<unsigned char> construct_index(std::vector<T>& alleles, bool referen
 
 class VariantReader {
 public:
-	VariantReader (std::string filename, std::string reference_filename, size_t kmer_size, bool add_reference, std::string sample = "sample");
+	VariantReader (std::string filename, std::string reference_filename, size_t kmer_size, bool add_reference, std::string sample = "sample", std::string mask = "");
 	/**  writes all path segments (allele sequences + reference sequences in between)
 	*    to the given file.
 	**/

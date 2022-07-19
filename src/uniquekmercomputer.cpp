@@ -3,14 +3,14 @@
 #include <iostream>
 #include <cassert>
 #include <map>
+#include "merstring.hpp"
 
 using namespace std;
 
-void unique_kmers(DnaSequence& allele, unsigned char index, size_t kmer_size, map<jellyfish::mer_dna, vector<unsigned char>>& occurences) {
+void unique_kmers_no_mask(DnaSequence& allele, unsigned char index, size_t kmer_size, map<jellyfish::mer_dna, vector<unsigned char>>& occurences) {
 	//enumerate kmers
 	map<jellyfish::mer_dna, size_t> counts;
 	size_t extra_shifts = kmer_size;
-	jellyfish::mer_dna::k(kmer_size);
 	jellyfish::mer_dna current_kmer("");
 	for (size_t i = 0; i < allele.size(); ++i) {
 		char current_base = allele[i];
@@ -24,19 +24,57 @@ void unique_kmers(DnaSequence& allele, unsigned char index, size_t kmer_size, ma
 		if (extra_shifts > 0) extra_shifts -= 1;
 	}
 	counts[current_kmer] += 1;
-
 	// determine kmers unique to allele
 	for (auto const& entry : counts) {
-		if (entry.second == 1) occurences[entry.first].push_back(index);
+		if (entry.second == 1){
+			occurences[entry.first].push_back(index);
+		} 
 	}
 }
 
-UniqueKmerComputer::UniqueKmerComputer (KmerCounter* genomic_kmers, KmerCounter* read_kmers, VariantReader* variants, string chromosome, size_t kmer_coverage)
+//k-mers unique to a given allele
+void unique_kmers(DnaSequence& allele, unsigned char index, size_t kmer_size, string mask, map<jellyfish::mer_dna, vector<unsigned char>>& occurences) {
+	
+	jellyfish::mer_dna::k(kmer_size);
+	if(mask == ""){
+		unique_kmers_no_mask(allele,index,kmer_size,occurences);
+		return;
+	}
+
+	//enumerate kmers
+	map<jellyfish::mer_dna, size_t> counts;
+	size_t extra_shifts = mask.size();
+	MerString current_kmer(mask.size());
+
+	for (size_t i = 0; i < allele.size(); ++i) {
+		char current_base = allele[i];
+		if (extra_shifts == 0) {
+			counts[current_kmer.apply_mask_sequence(mask)] += 1;
+		}
+		if (  ( current_base != 'A') && (current_base != 'C') && (current_base != 'G') && (current_base != 'T') ) {
+			extra_shifts = mask.size() + 1;
+		}
+		current_kmer.shift_left(current_base);
+		if (extra_shifts > 0) extra_shifts -= 1;
+	}
+	
+	counts[current_kmer.apply_mask_sequence(mask)] += 1;
+
+	// determine kmers unique to allele
+	for (auto const& entry : counts) {
+		if (entry.second == 1){
+			occurences[entry.first].push_back(index);
+		} 
+	}
+}
+
+UniqueKmerComputer::UniqueKmerComputer (KmerCounter* genomic_kmers, KmerCounter* read_kmers, VariantReader* variants, string chromosome, size_t kmer_coverage, string mask)
 	:genomic_kmers(genomic_kmers),
 	 read_kmers(read_kmers),
 	 variants(variants),
 	 chromosome(chromosome),
-	 kmer_coverage(kmer_coverage)
+	 kmer_coverage(kmer_coverage),
+	 mask(mask)
 {
 	jellyfish::mer_dna::k(this->variants->get_kmer_size());
 }
@@ -48,7 +86,12 @@ void UniqueKmerComputer::compute_unique_kmers(vector<UniqueKmers*>* result, Prob
 
 		// set parameters of distributions
 		size_t kmer_size = this->variants->get_kmer_size();
-		double kmer_coverage = compute_local_coverage(this->chromosome, v, 2*kmer_size);
+		double kmer_coverage;
+		if(this->mask == ""){
+			kmer_coverage = compute_local_coverage(this->chromosome, v, 2*kmer_size);
+		} else{
+			kmer_coverage = compute_local_coverage(this->chromosome, v, 2*mask.size());
+		}
 		
 		map <jellyfish::mer_dna, vector<unsigned char>> occurences;
 		const Variant& variant = this->variants->get_variant(this->chromosome, v);
@@ -72,15 +115,16 @@ void UniqueKmerComputer::compute_unique_kmers(vector<UniqueKmers*>* result, Prob
 				continue;
 			}
 			DnaSequence allele = variant.get_allele_sequence(a);
-			unique_kmers(allele, a, kmer_size, occurences);
+			unique_kmers(allele, a, kmer_size, this->mask, occurences);
 		}
 
 		// check if kmers occur elsewhere in the genome
 		size_t nr_kmers_used = 0;
 		for (auto& kmer : occurences) {
 			if (nr_kmers_used > 300) break;
-
+			//how often a kmer is in the reference pan-genome
 			size_t genomic_count = this->genomic_kmers->getKmerAbundance(kmer.first);
+			//how often a kmer is in the reference pan-genome bubble of the currrent variant
 			size_t local_count = kmer.second.size();
 
 			if ( (genomic_count - local_count) == 0 ) {
@@ -156,8 +200,8 @@ unsigned short UniqueKmerComputer::compute_local_coverage(string chromosome, siz
 
 	size_t kmer_size = this->variants->get_kmer_size();
 	map <jellyfish::mer_dna, vector<unsigned char>> occurences;
-	unique_kmers(left_overhang, 0, kmer_size, occurences);
-	unique_kmers(right_overhang, 1, kmer_size, occurences);
+	unique_kmers(left_overhang, 0, kmer_size, this->mask, occurences);
+	unique_kmers(right_overhang, 1, kmer_size, this->mask, occurences);
 
 	for (auto& kmer : occurences) {
 		size_t genomic_count = this->genomic_kmers->getKmerAbundance(kmer.first);

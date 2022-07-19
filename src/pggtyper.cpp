@@ -59,9 +59,9 @@ struct Results {
 	map<string, double> runtimes;
 };
 
-void prepare_unique_kmers(string chromosome, KmerCounter* genomic_kmer_counts, KmerCounter* read_kmer_counts, VariantReader* variant_reader, ProbabilityTable* probs, UniqueKmersMap* unique_kmers_map, size_t kmer_coverage) {
+void prepare_unique_kmers(string chromosome, KmerCounter* genomic_kmer_counts, KmerCounter* read_kmer_counts, VariantReader* variant_reader, ProbabilityTable* probs, UniqueKmersMap* unique_kmers_map, size_t kmer_coverage, string mask) {
 	Timer timer;
-	UniqueKmerComputer kmer_computer(genomic_kmer_counts, read_kmer_counts, variant_reader, chromosome, kmer_coverage);
+	UniqueKmerComputer kmer_computer(genomic_kmer_counts, read_kmer_counts, variant_reader, chromosome, kmer_coverage, mask);
 	std::vector<UniqueKmers*> unique_kmers;
 	kmer_computer.compute_unique_kmers(&unique_kmers, probs);
 	// store the results
@@ -131,6 +131,8 @@ int main (int argc, char* argv[])
 	string readfile = "";
 	string reffile = "";
 	string vcffile = "";
+	string maskfile = "";
+	string segment_mer_file = "";
 	size_t kmersize = 31;
 	string outname = "result";
 	string sample_name = "sample";
@@ -166,6 +168,8 @@ int main (int argc, char* argv[])
 	argument_parser.add_flag_argument('d', "do not add reference as additional path.");
 //	argument_parser.add_optional_argument('a', "0", "sample subsets of paths of this size.");
 	argument_parser.add_optional_argument('e', "3000000000", "size of hash used by jellyfish.");
+	argument_parser.add_optional_argument('f', "", "file with k-mers of segmented paths");
+	argument_parser.add_optional_argument('m', "", "mask for spaced seeds. Needs to consist of ones and zeros. Stored in seperate file.");
 
 	try {
 		argument_parser.parse(argc, argv);
@@ -179,6 +183,8 @@ int main (int argc, char* argv[])
 	readfile = argument_parser.get_argument('i');
 	reffile = argument_parser.get_argument('r');
 	vcffile = argument_parser.get_argument('v');
+	maskfile = argument_parser.get_argument('m');
+	segment_mer_file = argument_parser.get_argument('f');
 	kmersize = stoi(argument_parser.get_argument('k'));
 	outname = argument_parser.get_argument('o');
 	sample_name = argument_parser.get_argument('s');
@@ -215,9 +221,46 @@ int main (int argc, char* argv[])
 	check_input_file(vcffile);
 	check_input_file(readfile);
 
+	if(segment_mer_file!="") check_input_file(segment_mer_file);
+
+	//Read mask
+	string mask = "";
+	if(maskfile != ""){
+		check_input_file(maskfile);
+		ifstream maskstream(maskfile);
+		getline(maskstream,mask);
+		maskstream.close();
+
+		//validate
+		int raw_mer_size = 0;
+		int masked_mer_size = 0;
+		for(char c : mask){
+			if(c=='0'){
+				raw_mer_size++;
+			} else if(c=='1'){
+				raw_mer_size++;
+				masked_mer_size++;
+			} else{
+				throw runtime_error("invalid characters in mask. Only 0 and 1 allowed.");
+			}
+		}
+		if(masked_mer_size != kmersize){
+			throw runtime_error("Fixed positins of mask (" + to_string(masked_mer_size) + ") not equal to specified k-mer length (" + to_string(kmersize) + ").");
+		}
+		//mask needs to be canonical
+		string reversed_mask(mask);
+		reverse(reversed_mask.begin(),reversed_mask.end());
+		if(mask != reversed_mask){
+			throw runtime_error("Mask is not canonical!");
+		}
+
+		// print info
+		cerr << "Mask \t" << mask << endl;
+	}
+
 	// read allele sequences and unitigs inbetween, write them into file
 	cerr << "Determine allele sequences ..." << endl;
-	VariantReader variant_reader (vcffile, reffile, kmersize, add_reference, sample_name);
+	VariantReader variant_reader (vcffile, reffile, kmersize, add_reference, sample_name, mask);
 	
 	// TODO: only for analysis
 	struct rusage r_usage00;
@@ -263,10 +306,17 @@ int main (int argc, char* argv[])
 		size_t kmer_abundance_peak = read_kmer_counts->computeHistogram(10000, count_only_graph, outname + "_histogram.histo");
 		cerr << "Computed kmer abundance peak: " << kmer_abundance_peak << endl;
 
+		//TODO: HAIMO Validate if correct
 		// count kmers in allele + reference sequence
-		cerr << "Count kmers in genome ..." << endl;
-		JellyfishCounter genomic_kmer_counts (segment_file, kmersize, nr_jellyfish_threads, hash_size);
-
+		KmerCounter* genomic_kmer_counts = nullptr;
+		if(segment_mer_file != "" && segment_mer_file .substr(std::max(3, (int) segment_mer_file .size())-3) == std::string(".jf") )
+		{
+			cerr << "Read pre-computed kmer counts of genome ..." << endl;
+			genomic_kmer_counts = new JellyfishReader(segment_mer_file,kmersize);
+		} else {
+			cerr << "Count kmers in genome ..." << endl;
+			genomic_kmer_counts = new JellyfishCounter(segment_file, kmersize, nr_jellyfish_threads, hash_size);
+		}
 		// TODO: only for analysis
 		struct rusage r_usage1;
 		getrusage(RUSAGE_SELF, &r_usage1);
@@ -295,9 +345,9 @@ int main (int argc, char* argv[])
 			for (auto chromosome : chromosomes) {
 				VariantReader* variants = &variant_reader;
 				UniqueKmersMap* result = &unique_kmers_list;
-				KmerCounter* genomic_counts = &genomic_kmer_counts;
+				KmerCounter* genomic_counts = genomic_kmer_counts;
 				ProbabilityTable* probs = &probabilities;
-				function<void()> f_unique_kmers = bind(prepare_unique_kmers, chromosome, genomic_counts, read_kmer_counts, variants, probs, result, kmer_abundance_peak);
+				function<void()> f_unique_kmers = bind(prepare_unique_kmers, chromosome, genomic_counts, read_kmer_counts, variants, probs, result, kmer_abundance_peak, mask);
 				threadPool.submit(f_unique_kmers);
 			}
 		}
@@ -310,6 +360,7 @@ int main (int argc, char* argv[])
 		delete read_kmer_counts;
 		read_kmer_counts = nullptr;
 		time_unique_kmers = timer.get_interval_time();
+		cerr << "time spent determining unique kmers: \t" << time_unique_kmers << " sec" << endl; 
 	}
 
 	// TODO: only for analysis

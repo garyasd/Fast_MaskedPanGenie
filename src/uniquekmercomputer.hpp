@@ -15,8 +15,9 @@ public:
 	* @param read_kmers read kmer counts
 	* @param variants 
 	* @param kmer_coverage needed to compute kmer copy number probabilities
+	* @param mask to compute spaced kmer, enter empty string of not needed
 	**/
-	UniqueKmerComputer (KmerCounter* genomic_kmers, KmerCounter* read_kmers, VariantReader* variants, std::string chromosome, size_t kmer_coverage);
+	UniqueKmerComputer (KmerCounter* genomic_kmers, KmerCounter* read_kmers, VariantReader* variants, std::string chromosome, size_t kmer_coverage, std::string mask);
 	/** generates UniqueKmers object for each position, ownership of vector is transferred to the caller. **/
 	void compute_unique_kmers(std::vector<UniqueKmers*>* result, ProbabilityTable* probabilities);
 	/** generates empty UniwueKmers objects for each position (no kmers, only paths). Ownership of vector is transferred to caller. **/
@@ -28,6 +29,7 @@ private:
 	VariantReader* variants;
 	std::string chromosome;
 	size_t kmer_coverage;
+	std::string mask;
 	/** compute local coverage in given interval based on unique kmers 
 	* @param chromosome chromosome
 	* @param var_index variant index
