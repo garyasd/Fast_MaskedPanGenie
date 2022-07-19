@@ -14,6 +14,7 @@
 #include <jellyfish/file_header.hpp>
 #include <jellyfish/jellyfish.hpp>
 #include <memory>
+#include <mutex>
 #include "kmercounter.hpp"
 
 /**
@@ -88,7 +89,8 @@ private:
 	/** jf database **/
 	std::shared_ptr<binary_query> db;
 	/** infile **/
-	std::ifstream ifs;
-	
+	std::ifstream ifs;	
+	/** mutex **/
+	std::mutex abundance_mutex;
 };
 #endif // JELLYFISHREADER_HPP
