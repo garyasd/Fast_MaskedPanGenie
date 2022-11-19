@@ -1,3 +1,28 @@
+# MaskedPanGenie
+This is a modified version of PanGenie that supports spaced seeds. 
+
+Spaced seeds (patterns of care and don't care positions) are more resistent to sequencing errors than conventional contiguous k-mers and may be able to increase sensitivity of Bioinformatics applications.
+MaskedPanGenie implements this by allowing to add a spaced seed as optional parameter (-m), which will be used for the detection of unique "spaced" kmers in the provided pangenome graph.
+
+These spaced k-mers will then be compared to spaced k-mers of the reads. PanGenie uses the k-mer counter Jellyfish for this, but unfortunately Jellyfish does not support spaced seeds. Hence, I developed a lightweight tool "MaskJelly" which can be used in combination with Jellyfish to create dictionaries of spaced k-mers *before* MaskedPanGenie gets executed.
+
+Please note that this additional preprocessing step requires additional time and resources, which slows the genotyping pipeline down. This problem could be resolved by implementing a counting tool specialised on spaced k-mers, but this is outside of my technical expertise. MaskedPanGenie is intended as a prototype to analyse the effects of spaced seeds and does not aim to be production-level software. 
+
+## Requirements
+* MaskJelly https://github.com/hhaentze/MaskJelly
+* Jellyfish https://github.com/gmarcais/Jellyfish
+
+## Installation
+See installation instructions below, but replace repository with:
+``https://github.com/hhaentze/MaskedPangenie``
+
+## Usage
+See [example](tutorial.sh)
+
+---
+
+
+
 # PanGenie
 
 A short-read genotyper for various types of genetic variants (such as SNPs, indels and structural variants) represented in a pangenome graph. Genotypes are computed based on read k-mer counts and a panel of known haplotypes. A description of the method can be found here: https://doi.org/10.1038/s41588-022-01043-w
