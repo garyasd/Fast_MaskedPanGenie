@@ -12,7 +12,7 @@ Use this tool to generate a highly sensitive palindrome spaced seed.
 ## Installation
  
 `` git clone https://github.com/garyasd/Fast_MaskedPanGenie.git``  
-`` cd pangenie``
+`` cd Fast_MaskedPanGenie``
 
 `` mv ./mer_overlap_sequence_parser.hpp MINICONDA_PATH/pkgs/jellyfish-2.2.10-h6bb024c_1/include/jellyfish-2.2.10/jellyfish``
 
@@ -21,7 +21,9 @@ Use this tool to generate a highly sensitive palindrome spaced seed.
 ``mkdir build; cd build; cmake .. ; make``
 
 ## Usage
+
 PanGenie [options] -i <reads.fa/fq> -r <reference.fa> -v <variants.vcf> -m <spacedSeed.txt>
+
 ---
 
 
