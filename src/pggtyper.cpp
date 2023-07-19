@@ -132,7 +132,7 @@ int main (int argc, char* argv[])
 	string reffile = "";
 	string vcffile = "";
 	string maskfile = "";
-	string segment_mer_file = "";
+	// string segment_mer_file = "";
 	size_t kmersize = 31;
 	string outname = "result";
 	string sample_name = "sample";
@@ -168,7 +168,7 @@ int main (int argc, char* argv[])
 	argument_parser.add_flag_argument('d', "do not add reference as additional path.");
 //	argument_parser.add_optional_argument('a', "0", "sample subsets of paths of this size.");
 	argument_parser.add_optional_argument('e', "3000000000", "size of hash used by jellyfish.");
-	argument_parser.add_optional_argument('f', "", "file with k-mers of segmented paths");
+//	argument_parser.add_optional_argument('f', "", "file with k-mers of segmented paths");
 	argument_parser.add_optional_argument('m', "", "mask for spaced seeds. Needs to consist of ones and zeros. Stored in seperate file.");
 
 	try {
@@ -184,7 +184,7 @@ int main (int argc, char* argv[])
 	reffile = argument_parser.get_argument('r');
 	vcffile = argument_parser.get_argument('v');
 	maskfile = argument_parser.get_argument('m');
-	segment_mer_file = argument_parser.get_argument('f');
+	//segment_mer_file = argument_parser.get_argument('f');
 	kmersize = stoi(argument_parser.get_argument('k'));
 	outname = argument_parser.get_argument('o');
 	sample_name = argument_parser.get_argument('s');
@@ -221,7 +221,7 @@ int main (int argc, char* argv[])
 	check_input_file(vcffile);
 	check_input_file(readfile);
 
-	if(segment_mer_file!="") check_input_file(segment_mer_file);
+	// if(segment_mer_file!="") check_input_file(segment_mer_file);
 
 	//Read mask
 	string mask = "";
@@ -257,6 +257,7 @@ int main (int argc, char* argv[])
 		// print info
 		cerr << "Mask \t" << mask << endl;
 	}
+	char* mask_c = const_cast<char* >(mask.c_str());
 
 	// read allele sequences and unitigs inbetween, write them into file
 	cerr << "Determine allele sequences ..." << endl;
@@ -297,9 +298,9 @@ int main (int argc, char* argv[])
 		} else {
 			cerr << "Count kmers in reads ..." << endl;
 			if (count_only_graph) {
-				read_kmer_counts = new JellyfishCounter(readfile, segment_file, kmersize, nr_jellyfish_threads, hash_size);
+				read_kmer_counts = new JellyfishCounter(readfile, segment_file, kmersize, nr_jellyfish_threads, hash_size, mask_c);
 			} else {
-				read_kmer_counts = new JellyfishCounter(readfile, kmersize, nr_jellyfish_threads, hash_size);
+				read_kmer_counts = new JellyfishCounter(readfile, kmersize, nr_jellyfish_threads, hash_size, mask_c);
 			}
 		}
 
@@ -309,14 +310,17 @@ int main (int argc, char* argv[])
 		//TODO: HAIMO Validate if correct
 		// count kmers in allele + reference sequence
 		KmerCounter* genomic_kmer_counts = nullptr;
-		if(segment_mer_file != "" && segment_mer_file .substr(std::max(3, (int) segment_mer_file .size())-3) == std::string(".jf") )
-		{
-			cerr << "Read pre-computed kmer counts of genome ..." << endl;
-			genomic_kmer_counts = new JellyfishReader(segment_mer_file,kmersize);
-		} else {
-			cerr << "Count kmers in genome ..." << endl;
-			genomic_kmer_counts = new JellyfishCounter(segment_file, kmersize, nr_jellyfish_threads, hash_size);
-		}
+		cerr << "Count kmers in genome ..." << endl;
+		genomic_kmer_counts = new JellyfishCounter(segment_file, kmersize, nr_jellyfish_threads, hash_size, mask_c);
+		// if(segment_mer_file != "" && segment_mer_file .substr(std::max(3, (int) segment_mer_file .size())-3) == std::string(".jf") )
+		// {
+		// 	cerr << "Read pre-computed kmer counts of genome ..." << endl;
+		// 	genomic_kmer_counts = new JellyfishReader(segment_mer_file,kmersize);
+		// } else {
+		// 	cerr << "Count kmers in genome ..." << endl;
+		// 	genomic_kmer_counts = new JellyfishCounter(segment_file, kmersize, nr_jellyfish_threads, hash_size);
+		// }
+
 		// TODO: only for analysis
 		struct rusage r_usage1;
 		getrusage(RUSAGE_SELF, &r_usage1);

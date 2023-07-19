@@ -43,22 +43,12 @@ JellyfishReader::JellyfishReader (string readfile, size_t kmersize)
 size_t JellyfishReader::getKmerAbundance(string kmer){
 	jellyfish::mer_dna jelly_kmer(kmer);
 	jelly_kmer.canonicalize();
-	size_t abundance;
-	{
-		lock_guard<mutex> lock_function (this->abundance_mutex);
-		abundance = this->db->check(jelly_kmer);
-	}
-	return abundance;
+	return this->db->check(jelly_kmer);
 }
 
 size_t JellyfishReader::getKmerAbundance(jellyfish::mer_dna jelly_kmer){
 	jelly_kmer.canonicalize();
-	size_t abundance;
-	{
-		lock_guard<mutex> lock_function (this->abundance_mutex);
-		abundance = this->db->check(jelly_kmer);
-	}
-	return abundance;
+	return this->db->check(jelly_kmer);
 }
 
 size_t JellyfishReader::computeKmerCoverage(size_t genome_kmers) {

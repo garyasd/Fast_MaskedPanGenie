@@ -23,7 +23,7 @@ vector<char*> to_args(string readfile) {
 }
 
 
-JellyfishCounter::JellyfishCounter (string readfile, size_t kmer_size, size_t nr_threads, uint64_t hash)
+JellyfishCounter::JellyfishCounter (string readfile, size_t kmer_size, size_t nr_threads, uint64_t hash, char* spaced_seed)
 {
 	jellyfish::mer_dna::k(kmer_size); // Set length of mers
 	const uint64_t hash_size    = hash; // Initial size of hash, default = 3000000000.
@@ -39,7 +39,7 @@ JellyfishCounter::JellyfishCounter (string readfile, size_t kmer_size, size_t nr
 	vector<char*> args = to_args(readfile);
 
 	// count kmers
-	mer_counter jellyfish_counter(num_threads, (*jellyfish_hash), &args[0], (&args[0])+1, canonical, COUNT);
+	mer_counter jellyfish_counter(num_threads, (*jellyfish_hash), &args[0], (&args[0])+1, canonical, COUNT, true, spaced_seed);
 	jellyfish_counter.exec_join(num_threads);
 
 	// delete the readfile char**
@@ -48,7 +48,7 @@ JellyfishCounter::JellyfishCounter (string readfile, size_t kmer_size, size_t nr
 
 }
 
-JellyfishCounter::JellyfishCounter (string readfile, string kmerfile, size_t kmer_size, size_t nr_threads, uint64_t hash)
+JellyfishCounter::JellyfishCounter (string readfile, string kmerfile, size_t kmer_size, size_t nr_threads, uint64_t hash, char* spaced_seed)
 {
 	jellyfish::mer_dna::k(kmer_size); // Set length of mers
 	const uint64_t hash_size    = hash; // Initial size of hash.
@@ -66,12 +66,12 @@ JellyfishCounter::JellyfishCounter (string readfile, string kmerfile, size_t kme
 
 	// process input kmers
 	{
-		mer_counter jellyfish_counter(num_threads, (*jellyfish_hash), &kmer_args[0], (&kmer_args[0])+1, canonical, PRIME);
+		mer_counter jellyfish_counter(num_threads, (*jellyfish_hash), &kmer_args[0], (&kmer_args[0])+1, canonical, PRIME, true, spaced_seed);
 		jellyfish_counter.exec_join(num_threads);
 	}
 
 	// process read kmers
-	mer_counter jellyfish_counter(num_threads, (*jellyfish_hash), &reads_args[0], (&reads_args[0])+1, canonical, UPDATE);
+	mer_counter jellyfish_counter(num_threads, (*jellyfish_hash), &reads_args[0], (&reads_args[0])+1, canonical, UPDATE, true, spaced_seed);
 	jellyfish_counter.exec_join(num_threads);
 
 	// delete the kmerfile char**

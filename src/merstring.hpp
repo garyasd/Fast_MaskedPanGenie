@@ -11,7 +11,7 @@ public:
     MerString(std::string sequence);
 
     MerString(size_t k);
-
+    ~MerString();
     /** return size of k-mer**/
     size_t size();
 

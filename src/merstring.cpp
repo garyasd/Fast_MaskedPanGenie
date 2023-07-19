@@ -33,6 +33,9 @@ MerString::MerString(string sequence)
         else throw runtime_error("Character" + to_string(c) + "not accepted as base.");
     }
 }
+MerString::~MerString(){
+    free(bases);
+}
 
 size_t MerString::size(){
     return k;

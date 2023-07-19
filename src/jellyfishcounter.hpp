@@ -34,10 +34,10 @@ class mer_counter : public jellyfish::thread_exec {
 public:
 	mer_counter(int nb_threads, mer_hash_type& mer_hash,
 	char** file_begin, char** file_end,
-	bool canonical, OPERATION op)
+	bool canonical, OPERATION op, bool used_masked = false, char* spaced_seed = nullptr)
 	: mer_hash_(mer_hash)
 	, streams_(file_begin, file_end)
-	, parser_(jellyfish::mer_dna::k(), streams_.nb_streams(), 3 * nb_threads, 4096, streams_)
+	, parser_(jellyfish::mer_dna::k(), streams_.nb_streams(), 3 * nb_threads, 8192, streams_, used_masked, spaced_seed)
 	, canonical_(canonical)
 	, op_(op)
 { }
@@ -75,7 +75,7 @@ public:
 	* @param *params parameters for GATB-Kmercounter
 	* @param name of the output file
 	**/
-	JellyfishCounter(std::string readfile, size_t kmer_size, size_t nr_threads = 1, uint64_t hash = 3000000000);
+	JellyfishCounter(std::string readfile, size_t kmer_size, size_t nr_threads = 1, uint64_t hash = 3000000000, char* spaced_seed = nullptr);
 
 	/** 
 	* @param readfile name of the FASTQ-files containing reads
@@ -83,7 +83,7 @@ public:
 	* @param *params parameters for GATB-Kmercounter
 	* @param name of the output file
 	**/
-	JellyfishCounter (std::string readfile, std::string kmerfile, size_t kmer_size, size_t nr_threads = 1, uint64_t hash = 3000000000);
+	JellyfishCounter (std::string readfile, std::string kmerfile, size_t kmer_size, size_t nr_threads = 1, uint64_t hash = 3000000000, char* spaced_seed = nullptr);
 
 	~JellyfishCounter();
 	
