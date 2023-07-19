@@ -4,21 +4,20 @@ This is a modified version of PanGenie that supports spaced seeds.
 Spaced seeds (patterns of care and don't care positions) are more resistent to sequencing errors than conventional contiguous k-mers and may be able to increase sensitivity of Bioinformatics applications.
 MaskedPanGenie implements this by allowing to add a spaced seed as optional parameter (-m), which will be used for the detection of unique "spaced" kmers in the provided pangenome graph.
 
-These spaced k-mers will then be compared to spaced k-mers of the reads. PanGenie uses the k-mer counter Jellyfish for this, but unfortunately Jellyfish does not support spaced seeds. Hence, I developed a lightweight tool "MaskJelly" which can be used in combination with Jellyfish to create dictionaries of spaced k-mers *before* MaskedPanGenie gets executed.
+These spaced k-mers will then be compared to spaced k-mers of the reads. We proposed a new-version for MaskedPanGenie called Fast-MaskedPanGenie which use MaskedJellyfish for spaced k-mer counting task. Fast-MaskedPanGenie speed up 2x-3x compared to original MaskedPanGenie. 
 
-Please note that this additional preprocessing step requires additional time and resources, which slows the genotyping pipeline down. This problem could be resolved by implementing a counting tool specialised on spaced k-mers, but this is outside of my technical expertise. MaskedPanGenie is intended as a prototype to analyse the effects of spaced seeds and does not aim to be production-level software. 
-
-## Requirements
-* MaskJelly https://github.com/hhaentze/MaskJelly
-* Jellyfish https://github.com/gmarcais/Jellyfish
-
-## Installation
-See installation instructions below, but replace repository with:
-``https://github.com/hhaentze/MaskedPangenie``
-
+## Related tools
+PalindromeSpEED https://github.com/garyasd/PalindromeSpEED.git
+Use this tool to generate a highly sensitive palindrome spaced seed.
+## Installation 
+`` git clone https://github.com/garyasd/Fast_MaskedPanGenie.git``  
+`` cd pangenie``
+`` mv ./mer_overlap_sequence_parser.hpp MINICONDA_PATH/pkgs/jellyfish-2.2.10-h6bb024c_1/include/jellyfish-2.2.10/jellyfish ``
+`` conda env create -f environment.yml``  
+`` conda activate pangenie``   
+``mkdir build; cd build; cmake .. ; make``
 ## Usage
-See [example](tutorial.sh)
-
+PanGenie [options] -i <reads.fa/fq> -r <reference.fa> -v <variants.vcf> -m <spacedSeed.txt>
 ---
 
 
