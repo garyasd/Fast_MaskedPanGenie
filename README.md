@@ -9,13 +9,17 @@ These spaced k-mers will then be compared to spaced k-mers of the reads. We prop
 ## Related tools
 PalindromeSpEED https://github.com/garyasd/PalindromeSpEED.git
 Use this tool to generate a highly sensitive palindrome spaced seed.
-## Installation 
+## Installation
+ 
 `` git clone https://github.com/garyasd/Fast_MaskedPanGenie.git``  
-`` cd pangenie  ``
-`` mv ./mer_overlap_sequence_parser.hpp MINICONDA_PATH/pkgs/jellyfish-2.2.10-h6bb024c_1/include/jellyfish-2.2.10/jellyfish  ``
+`` cd pangenie``
+
+`` mv ./mer_overlap_sequence_parser.hpp MINICONDA_PATH/pkgs/jellyfish-2.2.10-h6bb024c_1/include/jellyfish-2.2.10/jellyfish``
+
 `` conda env create -f environment.yml``  
 `` conda activate pangenie``   
 ``mkdir build; cd build; cmake .. ; make``
+
 ## Usage
 PanGenie [options] -i <reads.fa/fq> -r <reference.fa> -v <variants.vcf> -m <spacedSeed.txt>
 ---
